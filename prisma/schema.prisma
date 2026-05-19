@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // 数据库连接URL已迁移至prisma.config.ts，此处不再需要配置
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum BorrowStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  role          Role           @default(MEMBER)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  borrowRecords BorrowRecord[]
+
+  @@map("users")
+}
+
+model Book {
+  id            Int            @id @default(autoincrement())
+  title         String
+  author        String
+  isbn          String         @unique
+  publishYear   Int            @map("publish_year")
+  stock         Int            @default(0)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  borrowRecords BorrowRecord[]
+
+  @@index([title])
+  @@map("books")
+}
+
+model BorrowRecord {
+  id         Int          @id @default(autoincrement())
+  userId     Int          @map("user_id")
+  bookId     Int          @map("book_id")
+  borrowDate DateTime     @default(now()) @map("borrow_date")
+  dueDate    DateTime     @map("due_date")
+  returnDate DateTime?    @map("return_date")
+  status     BorrowStatus @default(BORROWED)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book       Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([bookId])
+  @@map("borrow_records")
+}

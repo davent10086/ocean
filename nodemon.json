@@ -1,0 +1,14 @@
+{
+  "watch": [
+    "api"
+  ],
+  "ext": "ts,mts,js,json",
+  "ignore": [
+    "dist/*"
+  ],
+  "exec": "tsx api/server.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 1000
+}
