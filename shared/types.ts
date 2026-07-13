@@ -56,6 +56,7 @@ export interface AdminDashboardSummary {
   };
   recentRecords: BorrowRecordItem[];
   lowStockBooks: BookItem[];
+  charts: DashboardCharts;
 }
 
 export interface MemberDashboardSummary {
@@ -65,6 +66,23 @@ export interface MemberDashboardSummary {
     overdueBorrows: number;
   };
   recentRecords: BorrowRecordItem[];
+  charts: DashboardCharts;
+}
+
+export interface DashboardCharts {
+  monthlyBorrows: { month: string; count: number }[];
+  weeklyActivity: { day: string; borrows: number; returns: number }[];
 }
 
 export type DashboardSummary = AdminDashboardSummary | MemberDashboardSummary;
+
+export interface AnnouncementItem {
+  id: number;
+  title: string;
+  content: string;
+  pinned: boolean;
+  authorId: number;
+  author: AuthUser;
+  createdAt: string;
+  updatedAt: string;
+}

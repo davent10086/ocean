@@ -1,10 +1,13 @@
-﻿import type { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { createBorrowRecord, listBorrowRecords, returnBorrowRecord } from '../services/borrow.service.js';
 import { catchAsync } from '../utils/catch-async.js';
 import { sendSuccess } from '../utils/response.js';
 
 export const listBorrowRecordsController = catchAsync(async (req: Request, res: Response) => {
-  const result = await listBorrowRecords(req.user!);
+  const result = await listBorrowRecords(req.user!, {
+    page: Number(req.query.page ?? 1),
+    pageSize: Number(req.query.pageSize ?? 10),
+  });
   sendSuccess(res, result);
 });
 

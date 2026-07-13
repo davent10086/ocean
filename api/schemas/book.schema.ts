@@ -1,8 +1,11 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
-export const bookIdParamsSchema = z.object({
-  id: z.coerce.number().int().positive('图书 ID 不合法。'),
+// 通用 ID 参数校验 schema，供 book / borrow 等资源复用
+export const idParamsSchema = z.object({
+  id: z.coerce.number().int().positive('ID 不合法。'),
 });
+
+export const bookIdParamsSchema = idParamsSchema;
 
 export const saveBookSchema = z.object({
   title: z.string().min(1, '请输入图书标题。').max(120, '图书标题过长。'),

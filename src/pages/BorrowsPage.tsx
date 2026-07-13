@@ -2,12 +2,15 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { Button, Card, Space, Spin, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PageTransition } from '../components/Motion';
+import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
 import { BorrowStatusTag, RoleTag } from '../components/StatusTags';
 import { PageHeader } from '../components/PageHeader';
 import { booksApi, borrowApi } from '../services/api';
 import { feedback } from '../services/feedback';
-import type { BookItem, BorrowRecordItem, PaginatedResult } from '../types/app';
+import type { BookItem, BorrowRecordItem } from '../types/app';
+import type { BorrowStatus } from '../../shared/types';
 import { LIBRARY_DATA_CHANGED_EVENT } from '../utils/data-sync';
 
 export default function BorrowsPage() {
@@ -20,11 +23,11 @@ export default function BorrowsPage() {
     setLoading(true);
     try {
       const [borrowRecords, books] = await Promise.all([
-        borrowApi.list(),
+        borrowApi.list({ page: 1, pageSize: 50 }),
         booksApi.list({ page: 1, pageSize: 50, search: '' }),
       ]);
-      setRecords(borrowRecords);
-      setBookPool((books as PaginatedResult<BookItem>).items);
+      setRecords(borrowRecords.items);
+      setBookPool(books.items);
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,7 @@ export default function BorrowsPage() {
     };
   }, [loadData]);
 
-  const handleBorrow = async (bookId: number) => {
+  const handleBorrow = useCallback(async (bookId: number) => {
     setActionId(bookId);
     try {
       await borrowApi.create(bookId);
@@ -52,7 +55,7 @@ export default function BorrowsPage() {
     } finally {
       setActionId(null);
     }
-  };
+  }, [loadData]);
 
   const handleReturn = useCallback(async (recordId: number) => {
     setActionId(recordId);
@@ -88,7 +91,7 @@ export default function BorrowsPage() {
     },
     { title: '借阅时间', dataIndex: 'borrowDate', render: (value: string) => dayjs(value).format('YYYY-MM-DD') },
     { title: '应还时间', dataIndex: 'dueDate', render: (value: string) => dayjs(value).format('YYYY-MM-DD') },
-    { title: '状态', dataIndex: 'status', render: (value) => <BorrowStatusTag status={value} /> },
+    { title: '状态', dataIndex: 'status', render: (value: BorrowStatus) => <BorrowStatusTag status={value} /> },
     {
       title: '操作',
       key: 'actions',
@@ -105,32 +108,63 @@ export default function BorrowsPage() {
     },
   ], [actionId, handleReturn]);
 
-  const availableBooks = bookPool.filter((item) => item.stock > 0);
+  const availableBooks = useMemo(() => bookPool.filter((item) => item.stock > 0), [bookPool]);
 
   return (
-    <div className="page-stack">
+    <PageTransition className="page-stack">
       <PageHeader
         title="借阅记录"
         description="借阅、归还与状态追踪都在这里发生。"
         extra={<Button icon={<ReloadOutlined />} onClick={() => void loadData()}>刷新</Button>}
       />
       <Card className="ocean-card" variant="borderless">
-        <Typography.Title level={4}>可借图书</Typography.Title>
+        <Typography.Title level={4}>推荐书籍</Typography.Title>
         {loading ? (
           <Spin className="page-spin" />
         ) : (
           <div className="borrow-grid">
-            {availableBooks.map((book) => (
-              <Card key={book.id} className="borrow-book-card" variant="borderless">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                  <Typography.Title level={5} style={{ margin: 0 }}>{book.title}</Typography.Title>
-                  <Typography.Text type="secondary">{book.author}</Typography.Text>
-                  <Typography.Text>库存：{book.stock}</Typography.Text>
-                  <Button type="primary" loading={actionId === book.id} onClick={() => void handleBorrow(book.id)}>
-                    立即借阅
-                  </Button>
-                </Space>
-              </Card>
+            {availableBooks.map((book, index) => (
+              <motion.div
+                key={book.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: index * 0.06 }}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                style={{ cursor: 'default' }}
+              >
+                <Card className="borrow-book-card" variant="borderless">
+                  <div className="borrow-book-inner">
+                    <div className="book-spine" style={{
+                      background: `linear-gradient(180deg, hsl(${(book.id * 47) % 360}, 60%, 45%), hsl(${(book.id * 47 + 30) % 360}, 55%, 35%))`,
+                    }} />
+                    <div className="book-content">
+                      <Typography.Title level={5} style={{ margin: 0 }}>{book.title}</Typography.Title>
+                      <Typography.Text type="secondary">{book.author}</Typography.Text>
+                      <div className="stock-bar-wrapper">
+                        <div
+                          className="stock-bar-fill"
+                          style={{
+                            width: `${Math.min(100, book.stock * 20)}%`,
+                            background: book.stock === 0 ? '#ef4444' : book.stock <= 2 ? '#f59e0b' : 'linear-gradient(90deg, #3b82f6, #38bdf8)',
+                          }}
+                        />
+                      </div>
+                      <Typography.Text style={{ fontSize: 12, color: book.stock === 0 ? '#ef4444' : '#64748b' }}>
+                        库存 {book.stock}
+                      </Typography.Text>
+                      <Button
+                        type="primary"
+                        size="small"
+                        loading={actionId === book.id}
+                        onClick={() => void handleBorrow(book.id)}
+                        style={{ marginTop: 4 }}
+                      >
+                        立即借阅
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
             ))}
           </div>
         )}
@@ -156,6 +190,6 @@ export default function BorrowsPage() {
           />
         )}
       </Card>
-    </div>
+    </PageTransition>
   );
 }

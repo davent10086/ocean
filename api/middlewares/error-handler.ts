@@ -1,11 +1,14 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import { env } from '../config/env.js';
 import { AppError } from '../utils/app-error.js';
 
 export const errorHandler = (
   error: Error,
   _req: Request,
   res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _next: NextFunction,
 ) => {
   if (error instanceof AppError) {
     res.status(error.statusCode).json({
@@ -24,7 +27,12 @@ export const errorHandler = (
     return;
   }
 
-  console.error(error);
+  // 生产环境只输出错误消息，避免泄露堆栈；开发环境输出完整错误便于排查
+  if (env.NODE_ENV === 'production') {
+    console.error(error.message);
+  } else {
+    console.error(error);
+  }
   res.status(500).json({
     success: false,
     message: '服务器开小差了，请稍后再试。',

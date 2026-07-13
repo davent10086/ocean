@@ -7,6 +7,8 @@ import DashboardPage from './pages/DashboardPage';
 import BooksPage from './pages/BooksPage';
 import BorrowsPage from './pages/BorrowsPage';
 import UsersPage from './pages/UsersPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import AnnouncementsPage from './pages/AnnouncementsPage';
 import { RequireAuth } from './router/RequireAuth';
 import { setMessageApi } from './services/feedback';
 import { useAuthStore } from './store/auth-store';
@@ -44,6 +46,8 @@ export default function App() {
           <Route element={<RequireAuth roles={['ADMIN']} />}>
             <Route element={<AppLayout />}>
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/announcements" element={<AnnouncementsPage />} />
+              <Route path="/audit-logs" element={<AuditLogsPage />} />
             </Route>
           </Route>
         </Routes>

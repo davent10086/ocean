@@ -26,7 +26,7 @@ http.interceptors.response.use(
     if (status === 401) {
       useAuthStore.getState().logout();
       feedback.error(serverMessage ?? '登录状态已失效，请重新登录。');
-      window.location.href = '/login';
+      window.location.href = '/login?expired=1';
       return Promise.reject(error);
     }
 

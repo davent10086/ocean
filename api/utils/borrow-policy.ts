@@ -1,4 +1,4 @@
-﻿export interface BorrowPolicyInput {
+export interface BorrowPolicyInput {
   stock: number;
   activeBorrowCount: number;
   duplicateActiveBorrow: boolean;
@@ -27,7 +27,8 @@ export const getBorrowBlockReason = ({
 };
 
 export const calculateDueDate = (days: number) => {
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + days);
-  return dueDate;
+  // 使用基于时间戳的计算，避免本地时区导致的日期偏移问题
+  const now = new Date();
+  const due = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  return due;
 };

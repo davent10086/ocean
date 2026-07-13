@@ -1,3 +1,6 @@
+// 种子数据脚本：仅用于开发与测试环境初始化演示数据。
+// 生产环境必须通过环境变量设置 SEED_ADMIN_PASSWORD / SEED_MEMBER_PASSWORD / SEED_USER_PASSWORD，
+// 且禁止在生产环境运行本脚本（下方有 NODE_ENV 守卫）。
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { BorrowStatus, PrismaClient, Role } from '@prisma/client';
@@ -5,9 +8,19 @@ import { BorrowStatus, PrismaClient, Role } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const seed = async () => {
-  const adminPasswordHash = await bcrypt.hash('Admin123!', 10);
-  const memberPasswordHash = await bcrypt.hash('Member123!', 10);
-  const seededUserPasswordHash = await bcrypt.hash('123456', 10);
+  // 生产环境守卫：禁止在生产环境运行种子脚本，避免覆盖真实数据
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('禁止在生产环境运行种子脚本');
+  }
+
+  // 密码从环境变量读取，未设置时回退到默认值（向后兼容）
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin123!';
+  const memberPassword = process.env.SEED_MEMBER_PASSWORD || 'Member123!';
+  const seededUserPassword = process.env.SEED_USER_PASSWORD || '123456';
+
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
+  const memberPasswordHash = await bcrypt.hash(memberPassword, 12);
+  const seededUserPasswordHash = await bcrypt.hash(seededUserPassword, 12);
 
   const users = [
     {
@@ -50,8 +63,8 @@ const seed = async () => {
   for (const user of users) {
     await prisma.user.upsert({
       where: { email: user.email },
+      // 仅更新角色，不重置已有用户的密码，避免每次 seed 覆盖手动修改过的密码
       update: {
-        passwordHash: user.passwordHash,
         role: user.role,
       },
       create: user,
@@ -126,6 +139,8 @@ const seed = async () => {
   }
 
   // Rebuild demo borrow records from scratch so stock and borrow data stay in sync.
+  // 注意：此处会清空整张 borrow_records 表，仅应在开发/测试环境执行（顶部已有 NODE_ENV 守卫）
+  console.warn('即将清空 borrow_records 表并重建演示借阅记录...');
   await prisma.borrowRecord.deleteMany();
 
   const userMap = new Map(

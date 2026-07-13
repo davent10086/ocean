@@ -3,16 +3,11 @@ import { AIMessage, HumanMessage, SystemMessage, ToolMessage, type BaseMessage }
 import { ChatOpenAI } from '@langchain/openai';
 import { convertToModelMessages, createUIMessageStream, type UIMessage, type UIMessageStreamWriter } from 'ai';
 import { z } from 'zod';
+import type { AuthUser } from '../../shared/types.js';
 import { env } from '../config/env.js';
 import { listBooks } from './book.service.js';
 import { listBorrowRecords, createBorrowRecord, returnBorrowRecord } from './borrow.service.js';
 import { getAdminDashboardSummary } from './dashboard.service.js';
-
-type AuthenticatedUser = {
-  id: number;
-  email: string;
-  role: 'ADMIN' | 'MEMBER';
-};
 
 type AnyAgentToolDefinition = {
   name: string;
@@ -58,7 +53,7 @@ const executeReturnSchema = z.object({
   recordId: z.number(),
 });
 
-function buildSystemPrompt(user: AuthenticatedUser) {
+function buildSystemPrompt(user: AuthUser) {
   return `你是一个专业的蓝海书库智能助手（图书管理员猫头鹰）。
 当前用户角色：${user.role}，用户邮箱：${user.email}。
 你可以帮助用户搜索图书、查询借阅记录，并执行借书和还书操作。
@@ -75,7 +70,7 @@ function buildSystemPrompt(user: AuthenticatedUser) {
 8. 回答要符合猫头鹰馆长的人设，温和、专业、有点小可爱。`;
 }
 
-function createAgentTools(user: AuthenticatedUser): AnyAgentToolDefinition[] {
+function createAgentTools(user: AuthUser): AnyAgentToolDefinition[] {
   const tools: AnyAgentToolDefinition[] = [
     defineAgentTool({
       name: 'searchBooks',
@@ -87,7 +82,7 @@ function createAgentTools(user: AuthenticatedUser): AnyAgentToolDefinition[] {
       name: 'getBorrowRecords',
       description: '查询当前用户的借阅记录',
       schema: emptySchema,
-      execute: async () => listBorrowRecords(user),
+      execute: async () => listBorrowRecords(user, { page: 1, pageSize: 50 }),
     }),
     defineAgentTool({
       name: 'requestBorrowConfirmation',
@@ -372,7 +367,7 @@ async function executeToolCall(
 
 async function runAgentLoop(
   messages: UIMessage[],
-  user: AuthenticatedUser,
+  user: AuthUser,
   writer: UIMessageStreamWriter<UIMessage>,
 ) {
   const tools = createAgentTools(user);
@@ -466,7 +461,7 @@ async function runAgentLoop(
   writer.write({ type: 'finish', finishReason: 'length' });
 }
 
-export function createChatAgentStream(messages: UIMessage[], user: AuthenticatedUser) {
+export function createChatAgentStream(messages: UIMessage[], user: AuthUser) {
   return createUIMessageStream({
     originalMessages: messages,
     execute: async ({ writer }) => {

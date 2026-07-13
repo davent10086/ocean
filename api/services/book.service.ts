@@ -1,5 +1,6 @@
-﻿import { prisma } from '../config/prisma.js';
+import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/app-error.js';
+import { createAuditLog } from './audit-log.service.js';
 
 export const listBooks = async (query: {
   search?: string;
@@ -35,29 +36,46 @@ export const listBooks = async (query: {
   };
 };
 
-export const createBook = async (input: {
-  title: string;
-  author: string;
-  isbn: string;
-  publishYear: number;
-  stock: number;
-}) => {
+export const createBook = async (
+  userId: number,
+  input: {
+    title: string;
+    author: string;
+    isbn: string;
+    publishYear: number;
+    stock: number;
+  },
+) => {
   const existingBook = await prisma.book.findUnique({ where: { isbn: input.isbn } });
 
   if (existingBook) {
     throw new AppError('ISBN 已存在，请检查后再试。', 409);
   }
 
-  return prisma.book.create({ data: input });
+  const book = await prisma.book.create({ data: input });
+
+  await createAuditLog({
+    userId,
+    action: 'CREATE',
+    resource: 'book',
+    resourceId: book.id,
+    detail: `创建图书《${book.title}》`,
+  });
+
+  return book;
 };
 
-export const updateBook = async (id: number, input: {
-  title: string;
-  author: string;
-  isbn: string;
-  publishYear: number;
-  stock: number;
-}) => {
+export const updateBook = async (
+  userId: number,
+  id: number,
+  input: {
+    title: string;
+    author: string;
+    isbn: string;
+    publishYear: number;
+    stock: number;
+  },
+) => {
   const existingBook = await prisma.book.findUnique({ where: { id } });
 
   if (!existingBook) {
@@ -75,13 +93,23 @@ export const updateBook = async (id: number, input: {
     throw new AppError('ISBN 已存在，请检查后再试。', 409);
   }
 
-  return prisma.book.update({
+  const book = await prisma.book.update({
     where: { id },
     data: input,
   });
+
+  await createAuditLog({
+    userId,
+    action: 'UPDATE',
+    resource: 'book',
+    resourceId: id,
+    detail: `更新图书《${book.title}》`,
+  });
+
+  return book;
 };
 
-export const deleteBook = async (id: number) => {
+export const deleteBook = async (userId: number, id: number) => {
   const existingBook = await prisma.book.findUnique({ where: { id } });
 
   if (!existingBook) {
@@ -100,4 +128,12 @@ export const deleteBook = async (id: number) => {
   }
 
   await prisma.book.delete({ where: { id } });
+
+  await createAuditLog({
+    userId,
+    action: 'DELETE',
+    resource: 'book',
+    resourceId: id,
+    detail: `删除图书《${existingBook.title}》`,
+  });
 };

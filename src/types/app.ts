@@ -1,6 +1,6 @@
-import type { AuthUser, BookItem, BorrowRecordItem, DashboardSummary, PaginatedResult } from '../../shared/types';
+import type { AuthUser, BookItem, BorrowRecordItem, DashboardSummary, PaginatedResult, AnnouncementItem } from '../../shared/types';
 
-export type { AuthUser, BookItem, BorrowRecordItem, DashboardSummary, PaginatedResult };
+export type { AuthUser, BookItem, BorrowRecordItem, DashboardSummary, PaginatedResult, AnnouncementItem };
 
 export interface LoginFormValues {
   email: string;
@@ -27,6 +27,27 @@ export interface UserFormValues {
   role: 'ADMIN' | 'MEMBER';
 }
 
+export interface UpdateUserFormValues {
+  role: 'ADMIN' | 'MEMBER';
+}
+
+export interface ResetPasswordFormValues {
+  password: string;
+  confirmPassword: string;
+}
+
 export interface UserListItem extends AuthUser {
+  disabled: boolean;
   createdAt: string;
+}
+
+export interface AuditLogItem {
+  id: number;
+  userId: number;
+  action: string;
+  resource: string;
+  resourceId: number | null;
+  detail: string | null;
+  createdAt: string;
+  user: AuthUser;
 }

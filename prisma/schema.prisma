@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // 数据库连接URL已迁移至prisma.config.ts，此处不再需要配置
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -23,8 +23,11 @@ model User {
   email         String         @unique
   passwordHash  String         @map("password_hash")
   role          Role           @default(MEMBER)
+  disabled      Boolean        @default(false)
   createdAt     DateTime       @default(now()) @map("created_at")
   borrowRecords BorrowRecord[]
+  auditLogs     AuditLog[]
+  announcements Announcement[]
 
   @@map("users")
 }
@@ -35,7 +38,8 @@ model Book {
   author        String
   isbn          String         @unique
   publishYear   Int            @map("publish_year")
-  stock         Int            @default(0)
+  // stock 字段需在数据库层添加 CHECK (stock >= 0) 约束，Prisma schema 不直接支持 CHECK，见 migration SQL
+  stock         Int            @default(0) @map("stock")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   borrowRecords BorrowRecord[]
@@ -52,10 +56,51 @@ model BorrowRecord {
   dueDate    DateTime     @map("due_date")
   returnDate DateTime?    @map("return_date")
   status     BorrowStatus @default(BORROWED)
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book       Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  book       Book         @relation(fields: [bookId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([bookId])
+  @@index([userId, bookId, returnDate])
+  @@index([status, dueDate, returnDate])
   @@map("borrow_records")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  BORROW
+  RETURN
+}
+
+model AuditLog {
+  id         Int         @id @default(autoincrement())
+  userId     Int         @map("user_id")
+  action     AuditAction
+  resource   String
+  resourceId Int?        @map("resource_id")
+  detail     String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  pinned    Boolean  @default(false)
+  authorId  Int      @map("author_id")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([pinned, createdAt])
+  @@map("announcements")
 }

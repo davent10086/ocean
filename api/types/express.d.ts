@@ -1,13 +1,11 @@
-﻿export {};
+import type { AuthUser } from '../../shared/types.js';
+
+export {};
 
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: number;
-        email: string;
-        role: 'ADMIN' | 'MEMBER';
-      };
+      user?: AuthUser;
     }
   }
 }

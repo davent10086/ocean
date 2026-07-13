@@ -1,5 +1,5 @@
 import { LockOutlined, MailOutlined, ReadOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, Segmented, Space, Typography } from 'antd';
+import { Alert, Button, Card, Form, Input, Segmented, Space, Typography } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LoginPet } from '../components/LoginPet';
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   const target = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard';
+  const isExpired = new URLSearchParams(location.search).get('expired') === '1';
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
@@ -26,6 +27,8 @@ export default function LoginPage() {
       setAuth(result.token, result.user);
       feedback.success('登录成功，欢迎来到蓝海书库。');
       navigate(target, { replace: true });
+    } catch {
+      // 错误提示已由 http.ts 拦截器统一处理
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,8 @@ export default function LoginPage() {
       setAuth(result.token, result.user);
       feedback.success('注册成功，欢迎来到蓝海书库。');
       navigate(target, { replace: true });
+    } catch {
+      // 错误提示已由 http.ts 拦截器统一处理
     } finally {
       setLoading(false);
     }
@@ -81,11 +86,18 @@ export default function LoginPage() {
           value={mode}
           onChange={(value) => setMode(value as 'login' | 'register')}
         />
+        {mode === 'login' && isExpired && (
+          <Alert
+            type="warning"
+            showIcon
+            message="登录已过期，请重新登录。"
+            style={{ marginBottom: 16 }}
+          />
+        )}
         {mode === 'login' ? (
           <Form<LoginFormValues>
             layout="vertical"
             onFinish={handleSubmit}
-            initialValues={{ email: 'admin@blueocean.local', password: 'Admin123!' }}
           >
             <Form.Item name="email" label="邮箱" rules={[{ required: true, type: 'email', message: '请输入有效邮箱' }]}>
               <Input prefix={<MailOutlined />} placeholder="请输入邮箱" size="large" />
@@ -108,7 +120,7 @@ export default function LoginPage() {
             <Form.Item name="email" label="邮箱" rules={[{ required: true, type: 'email', message: '请输入有效邮箱' }]}>
               <Input prefix={<MailOutlined />} placeholder="请输入注册邮箱" size="large" />
             </Form.Item>
-            <Form.Item name="password" label="密码" rules={[{ required: true, min: 6, message: '密码至少 6 位' }]}>
+            <Form.Item name="password" label="密码" rules={[{ required: true, min: 8, message: '密码至少 8 位' }]}>
               <Input.Password
                 prefix={<LockOutlined />}
                 placeholder="请输入密码"
@@ -147,11 +159,13 @@ export default function LoginPage() {
             </Button>
           </Form>
         )}
-        <Card className="login-tips" variant="borderless">
-          <Typography.Text strong>演示账号</Typography.Text>
-          <div>管理员：admin@blueocean.local / Admin123!</div>
-          <div>成员：member@blueocean.local / Member123!</div>
-        </Card>
+        {import.meta.env.DEV && (
+          <Card className="login-tips" variant="borderless">
+            <Typography.Text strong>演示账号</Typography.Text>
+            <div>管理员：admin@blueocean.local / Admin123!</div>
+            <div>成员：member@blueocean.local / Member123!</div>
+          </Card>
+        )}
       </Card>
     </div>
   );

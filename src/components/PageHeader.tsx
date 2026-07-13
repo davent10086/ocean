@@ -1,4 +1,5 @@
-﻿import { Space, Typography } from 'antd';
+import { Space, Typography } from 'antd';
+import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
@@ -9,16 +10,21 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, extra }: PageHeaderProps) {
   return (
-    <div className="page-header">
+    <motion.div
+      className="page-header"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+    >
       <Space direction="vertical" size={4}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {title}
         </Typography.Title>
-        <Typography.Paragraph style={{ margin: 0, color: '#4b6385' }}>
+        <Typography.Paragraph style={{ margin: 0, color: 'var(--color-text-secondary)' }}>
           {description}
         </Typography.Paragraph>
       </Space>
       {extra}
-    </div>
+    </motion.div>
   );
 }

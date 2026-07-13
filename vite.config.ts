@@ -20,4 +20,23 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'antd-vendor': ['antd', '@ant-design/icons'],
+          'charts-vendor': ['recharts'],
+          'ai-vendor': [
+            'ai',
+            '@ai-sdk/react',
+            '@ai-sdk/openai',
+            '@langchain/core',
+            '@langchain/openai',
+            'react-markdown',
+          ],
+        },
+      },
+    },
+  },
 });

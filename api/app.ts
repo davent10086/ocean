@@ -5,6 +5,8 @@ import { env } from './config/env.js';
 import { authenticate } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { notFoundHandler } from './middlewares/not-found.js';
+import auditLogRouter from './routes/audit-logs.js';
+import announcementsRouter from './routes/announcements.js';
 import authRouter from './routes/auth.js';
 import booksRouter from './routes/books.js';
 import borrowRecordsRouter from './routes/borrow-records.js';
@@ -17,8 +19,8 @@ const app = express();
 const corsOrigins = env.CORS_ORIGIN.split(',').map((item) => item.trim());
 
 app.use(helmet());
-app.use(cors({ origin: corsOrigins, credentials: true }));
-app.use(express.json());
+app.use(cors({ origin: corsOrigins, credentials: true, maxAge: 86400 }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/api/health', (_req, res) => {
@@ -31,6 +33,8 @@ app.use('/api/users', authenticate, usersRouter);
 app.use('/api/books', authenticate, booksRouter);
 app.use('/api/borrow-records', authenticate, borrowRecordsRouter);
 app.use('/api/chat', authenticate, chatRouter);
+app.use('/api/announcements', authenticate, announcementsRouter);
+app.use('/api/audit-logs', authenticate, auditLogRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

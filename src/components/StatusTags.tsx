@@ -1,4 +1,4 @@
-﻿import { Tag } from 'antd';
+import { Tag } from 'antd';
 import type { BorrowStatus, UserRole } from '../../shared/types';
 
 export function BorrowStatusTag({ status }: { status: BorrowStatus }) {
@@ -13,4 +13,10 @@ export function BorrowStatusTag({ status }: { status: BorrowStatus }) {
 
 export function RoleTag({ role }: { role: UserRole }) {
   return <Tag color={role === 'ADMIN' ? 'blue' : 'cyan'}>{role === 'ADMIN' ? '管理员' : '成员'}</Tag>;
+}
+
+export function UserStatusTag({ disabled }: { disabled: boolean }) {
+  return disabled
+    ? <Tag color="error">已禁用</Tag>
+    : <Tag color="success">正常</Tag>;
 }

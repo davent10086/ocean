@@ -1,32 +1,39 @@
 import { pipeUIMessageStreamToResponse, type UIMessage } from 'ai';
 import { Router } from 'express';
+import { z } from 'zod';
+import { env } from '../config/env.js';
 import { createChatAgentStream } from '../services/chat-agent.service.js';
+import { AppError } from '../utils/app-error.js';
+import { catchAsync } from '../utils/catch-async.js';
+import { validate } from '../middlewares/validate.js';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
-  // 从请求中获取用户信息，处理TypeScript类型检查，先断言请求对象类型再访问user属性
-  const user = (req as any).user;
-  const messages = Array.isArray(req.body?.messages) ? (req.body.messages as UIMessage[]) : null;
+// 校验消息载荷：必须是数组且长度 <= 20，避免超大上下文消耗资源
+const chatSchema = z.object({
+  messages: z
+    .array(z.any())
+    .min(1, '消息不能为空。')
+    .max(20, '单次最多发送 20 条消息。'),
+});
 
-  try {
+router.post(
+  '/',
+  validate({ body: chatSchema }),
+  catchAsync(async (req, res) => {
+    const user = req.user;
     if (!user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
+      throw new AppError('未授权，请先登录。', 401);
     }
 
-    if (!messages) {
-      res.status(400).json({ error: 'Invalid messages payload' });
-      return;
+    if (!env.DEEPSEEK_API_KEY) {
+      throw new AppError('AI 助手暂未配置 API Key，其他书库功能可正常使用。', 503);
     }
 
+    const messages = req.body.messages as UIMessage[];
     const stream = createChatAgentStream(messages, user);
     pipeUIMessageStreamToResponse({ response: res, stream });
-  } catch (error) {
-    // 记录错误日志便于排查问题，避免未使用变量警告
-    console.error('Chat agent stream error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+  }),
+);
 
 export default router;
